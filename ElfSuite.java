@@ -1,15 +1,17 @@
 import java.awt.BorderLayout;
-import java.awt.ComponentOrientation;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.AdjustmentEvent;
+import java.awt.event.AdjustmentListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
 import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
+import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -20,8 +22,8 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EtchedBorder;
@@ -39,9 +41,15 @@ public class ElfSuite extends JFrame {
   JMenuItem mSaveAs = new JMenuItem("Save As");
   JMenuItem mExit = new JMenuItem("Exit");
   
-  JTextArea jtaMain = new JTextArea();
+  JEditorPane jtaMain = new JEditorPane() {
+    public void setBounds(int x, int y, int width, int height) {
+      Dimension size = this.getPreferredSize();
+      super.setBounds(x,  y,  Math.max(size.width,  width),  height);
+    }
+  };
   JScrollPane jspMain = new JScrollPane(jtaMain);
-  JTextArea jtaLines = new JTextArea();
+  JEditorPane jtaLines = new JEditorPane();
+  JScrollPane jspLines = new JScrollPane(jtaLines);
   JTextField[] jtRegs = new JTextField[N_REGISTERS];
   EventHandler eh = new EventHandler();
   JFileChooser jfc = new JFileChooser();
@@ -55,14 +63,14 @@ public class ElfSuite extends JFrame {
       JOptionPane.showMessageDialog(this, "Error - file is empty");
       return;
     }
-    sbLines.append("0\n");
-    sbCode.append(s.get(0)+"\n");
+    sbLines.append("&nbsp;<br/>");
+    sbCode.append(s.get(0)+"<br/>");
     for (int i=1; i<s.size(); i++) {
-      sbLines.append(String.valueOf(i-1)+"\n");
-      sbCode.append(s.get(i)+"\n");
+      sbLines.append(String.valueOf(i-1)+"<br/>");
+      sbCode.append(s.get(i)+"<br/>");
     }
-    jtaMain.setText(sbCode.toString());
-    jtaLines.setText(sbLines.toString());
+    jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbCode.toString()+"</span></div>");
+    jtaLines.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbLines.toString()+"</div></html>");
   }
   
   
@@ -98,20 +106,31 @@ public class ElfSuite extends JFrame {
       jp.add(jtRegs[i]);
       jpRegs.add(jp);
     }
+    jtaLines.setContentType("text/html");
+    jtaMain.setContentType("text/html");
     
-    jspMain.setBorder(new EtchedBorder());
-    jspMain.setPreferredSize(new Dimension(600,300));
-    jspMain.setRowHeaderView(jtaLines);
     
-    jtaLines.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+    
+    jspMain.setPreferredSize(new Dimension(300,300));
+    jspLines.setPreferredSize(new Dimension(50,300));
+    jtaLines.setBackground(ElfSuite.this.getBackground());
+    jspMain.getVerticalScrollBar().addAdjustmentListener(eh);
     
     JPanel jpMain = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    jpMain.add(jspLines);
+    jspLines.setBorder(new EtchedBorder());
+    jspLines.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
+    jspLines.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    jspMain.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+    jspMain.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+    
+    jpMain.add(jspLines);
     jpMain.add(jspMain);
     getContentPane().setLayout(new BorderLayout());
     getContentPane().add(jpRegs,  BorderLayout.NORTH);
     
-    //jtaMain.setFont(new Font("Courier New", Font.BOLD, 20));
-    //jtaLines.setFont(new Font("Courier New", Font.BOLD, 20));
+    jtaMain.setFont(new Font("Courier New", Font.BOLD, 20));
+    jtaLines.setFont(new Font("Courier New", Font.BOLD, 20));
     getContentPane().add(jpMain, BorderLayout.CENTER);
     
     jfc.setCurrentDirectory(new File("."));
@@ -129,7 +148,7 @@ public class ElfSuite extends JFrame {
   }
   
   
-  class EventHandler implements ActionListener {
+  class EventHandler implements ActionListener, AdjustmentListener {
     public void actionPerformed(ActionEvent e) {
       Object src = e.getSource();
       if (src == mExit) {
@@ -142,6 +161,14 @@ public class ElfSuite extends JFrame {
           } catch (Exception ex) { ex.printStackTrace(); }
         }
       }
+    }
+
+    @Override
+    public void adjustmentValueChanged(AdjustmentEvent e) {
+      if (e.getSource() == jspMain_vert) {
+        jspLines.getVerticalScrollBar().setValue(jspMain.getVerticalScrollBar().getValue());
+      }
+      
     }
   }
   
