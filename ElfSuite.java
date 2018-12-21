@@ -1,18 +1,24 @@
 import java.awt.BorderLayout;
+import java.awt.ComponentOrientation;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.io.File;
+import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -32,18 +38,35 @@ public class ElfSuite extends JFrame {
   JMenuItem mSave = new JMenuItem("Save");
   JMenuItem mSaveAs = new JMenuItem("Save As");
   JMenuItem mExit = new JMenuItem("Exit");
+  
   JTextArea jtaMain = new JTextArea();
   JScrollPane jspMain = new JScrollPane(jtaMain);
+  JTextArea jtaLines = new JTextArea();
   JTextField[] jtRegs = new JTextField[N_REGISTERS];
-  
-  
   EventHandler eh = new EventHandler();
-  void openFile(String f) {
-    
+  JFileChooser jfc = new JFileChooser();
+  JScrollBar jspMain_vert = jspMain.getVerticalScrollBar();
+  
+  
+  void openFile(ArrayList<String> s) {
+    StringBuilder sbCode = new StringBuilder();
+    StringBuilder sbLines = new StringBuilder();
+    if (s.size()==0) {
+      JOptionPane.showMessageDialog(this, "Error - file is empty");
+      return;
+    }
+    sbLines.append("0\n");
+    sbCode.append(s.get(0)+"\n");
+    for (int i=1; i<s.size(); i++) {
+      sbLines.append(String.valueOf(i-1)+"\n");
+      sbCode.append(s.get(i)+"\n");
+    }
+    jtaMain.setText(sbCode.toString());
+    jtaLines.setText(sbLines.toString());
   }
   
   
-  ElfSuite() {
+  ElfSuite() throws Exception {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setSize(800,600);
     setTitle("ElfSuite "+VERSION_ID);
@@ -73,16 +96,27 @@ public class ElfSuite extends JFrame {
       jtRegs[i].setHorizontalAlignment(JTextField.CENTER);
       jp.add(jl, BorderLayout.NORTH);
       jp.add(jtRegs[i]);
-      jspMain.setBorder(new EtchedBorder());
-      jspMain.setPreferredSize(new Dimension(600,300));
       jpRegs.add(jp);
     }
     
+    jspMain.setBorder(new EtchedBorder());
+    jspMain.setPreferredSize(new Dimension(600,300));
+    jspMain.setRowHeaderView(jtaLines);
+    
+    jtaLines.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+    
+    JPanel jpMain = new JPanel(new FlowLayout(FlowLayout.CENTER));
+    jpMain.add(jspMain);
     getContentPane().setLayout(new BorderLayout());
     getContentPane().add(jpRegs,  BorderLayout.NORTH);
     
-     jtaMain.setFont(new Font("Courier New", Font.PLAIN, 24));
-    getContentPane().add(jspMain, BorderLayout.CENTER);
+    //jtaMain.setFont(new Font("Courier New", Font.BOLD, 20));
+    //jtaLines.setFont(new Font("Courier New", Font.BOLD, 20));
+    getContentPane().add(jpMain, BorderLayout.CENTER);
+    
+    jfc.setCurrentDirectory(new File("."));
+    openFile(Tools.readLines("./wes-input.txt"));
+
     pack();
     setVisible(true);
     
@@ -100,6 +134,13 @@ public class ElfSuite extends JFrame {
       Object src = e.getSource();
       if (src == mExit) {
         setVisible(false);
+      } else if (src == mOpen) {
+        int result = jfc.showOpenDialog(ElfSuite.this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+          try {
+            openFile(Tools.readLines(jfc.getSelectedFile().getAbsolutePath()));
+          } catch (Exception ex) { ex.printStackTrace(); }
+        }
       }
     }
   }
