@@ -8,7 +8,6 @@ import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.KeyEvent;
 import java.io.File;
-import java.util.ArrayList;
 
 import javax.swing.BoxLayout;
 import javax.swing.JEditorPane;
@@ -23,16 +22,17 @@ import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.JTextPane;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.EtchedBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 @SuppressWarnings("serial")
 public class ElfSuite extends JFrame {
   static String VERSION_ID = "1.0";
   static final int N_REGISTERS = 6;
-  // GUI Stuff
+  
   JMenuBar mb = new JMenuBar();
   JMenu mFile = new JMenu("File");
   JMenuItem mNew = new JMenuItem("New");
@@ -47,34 +47,21 @@ public class ElfSuite extends JFrame {
       super.setBounds(x,  y,  Math.max(size.width,  width),  height);
     }
   };
+  JEditorPane jtaLineNos = new JEditorPane();
+  
   JScrollPane jspMain = new JScrollPane(jtaMain);
-  JEditorPane jtaLines = new JEditorPane();
-  JScrollPane jspLines = new JScrollPane(jtaLines);
+  JScrollPane jspLines = new JScrollPane(jtaLineNos);
+  
   JTextField[] jtRegs = new JTextField[N_REGISTERS];
   EventHandler eh = new EventHandler();
   JFileChooser jfc = new JFileChooser();
   JScrollBar jspMain_vert = jspMain.getVerticalScrollBar();
   
+  String current_fname = null;
+  ElfHTMLParser EHP = new ElfHTMLParser();
+  boolean changes_unsaved = false;
   
-  void openFile(ArrayList<String> s) {
-    StringBuilder sbCode = new StringBuilder();
-    StringBuilder sbLines = new StringBuilder();
-    if (s.size()==0) {
-      JOptionPane.showMessageDialog(this, "Error - file is empty");
-      return;
-    }
-    sbLines.append("&nbsp;<br/>");
-    sbCode.append(s.get(0)+"<br/>");
-    for (int i=1; i<s.size(); i++) {
-      sbLines.append(String.valueOf(i-1)+"<br/>");
-      sbCode.append(s.get(i)+"<br/>");
-    }
-    jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbCode.toString()+"</span></div>");
-    jtaLines.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbLines.toString()+"</div></html>");
-  }
-  
-  
-  ElfSuite() throws Exception {
+  ElfSuite() {
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     setSize(800,600);
     setTitle("ElfSuite "+VERSION_ID);
@@ -106,14 +93,12 @@ public class ElfSuite extends JFrame {
       jp.add(jtRegs[i]);
       jpRegs.add(jp);
     }
-    jtaLines.setContentType("text/html");
+    jtaLineNos.setContentType("text/html");
     jtaMain.setContentType("text/html");
-    
-    
-    
+        
     jspMain.setPreferredSize(new Dimension(300,300));
     jspLines.setPreferredSize(new Dimension(50,300));
-    jtaLines.setBackground(ElfSuite.this.getBackground());
+    jtaLineNos.setBackground(ElfSuite.this.getBackground());
     jspMain.getVerticalScrollBar().addAdjustmentListener(eh);
     
     JPanel jpMain = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -130,35 +115,61 @@ public class ElfSuite extends JFrame {
     getContentPane().add(jpRegs,  BorderLayout.NORTH);
     
     jtaMain.setFont(new Font("Courier New", Font.BOLD, 20));
-    jtaLines.setFont(new Font("Courier New", Font.BOLD, 20));
+    jtaLineNos.setFont(new Font("Courier New", Font.BOLD, 20));
     getContentPane().add(jpMain, BorderLayout.CENTER);
+    jtaMain.getDocument().addDocumentListener(eh);
     
     jfc.setCurrentDirectory(new File("."));
-    openFile(Tools.readLines("./wes-input.txt"));
-
+    try {
+      ElfFiles.openFile("./wes-input.txt", this);
+    } catch (Exception e) {}
     pack();
     setVisible(true);
     
   }
-    
-  
-  void run() {
-    
-    
-  }
-  
-  
-  class EventHandler implements ActionListener, AdjustmentListener {
+   
+  class EventHandler implements ActionListener, AdjustmentListener, DocumentListener {
     public void actionPerformed(ActionEvent e) {
       Object src = e.getSource();
-      if (src == mExit) {
-        setVisible(false);
+      if (src == mNew) {
+        if ((!changes_unsaved) || (JOptionPane.showConfirmDialog(ElfSuite.this, "There are unsaved changes - continue losing them?", 
+            "Elf Warning", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)) {
+          current_fname = null;
+          ElfFiles.newFile(ElfSuite.this);
+        }  
+        
+      } else if (src == mExit) {
+        if ((!changes_unsaved) || (JOptionPane.showConfirmDialog(ElfSuite.this, "There are unsaved changes. Ok to exit?", 
+            "Elf Warning", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)) {
+          setVisible(false);
+          System.exit(0);  
+        }  
+        
       } else if (src == mOpen) {
         int result = jfc.showOpenDialog(ElfSuite.this);
         if (result == JFileChooser.APPROVE_OPTION) {
           try {
-            openFile(Tools.readLines(jfc.getSelectedFile().getAbsolutePath()));
-          } catch (Exception ex) { ex.printStackTrace(); }
+            ElfFiles.openFile(jfc.getSelectedFile().getAbsolutePath(), ElfSuite.this);
+          } catch(Exception ex) { ex.printStackTrace(); }
+        }
+      
+      } else if ((src == mSave) || (src == mSaveAs)) {
+        if ((src == mSaveAs) || (current_fname == null)) {
+          if (current_fname != null) jfc.setSelectedFile(new File(current_fname));
+          int result = jfc.showSaveDialog(ElfSuite.this);
+          if (result == JFileChooser.APPROVE_OPTION) {
+            String new_fname = jfc.getSelectedFile().getAbsolutePath();
+            if ((!new_fname.equals(current_fname)) && (new File(new_fname).exists())) {
+              int result2 = JOptionPane.showConfirmDialog(ElfSuite.this, "This file already exists - is it ok to overwrite?", 
+                  "Elf Warning", JOptionPane.YES_NO_OPTION);
+              if (result2 == JOptionPane.NO_OPTION) new_fname = null;
+            }
+            if (new_fname!=null) {
+              try {
+                ElfFiles.saveFile(new_fname, ElfSuite.this);
+              } catch (Exception ex) { ex.printStackTrace(); }
+            }
+          }   
         }
       }
     }
@@ -168,20 +179,35 @@ public class ElfSuite extends JFrame {
       if (e.getSource() == jspMain_vert) {
         jspLines.getVerticalScrollBar().setValue(jspMain.getVerticalScrollBar().getValue());
       }
+    }
+
+    @Override
+    public void insertUpdate(DocumentEvent e) {
+      if (!changes_unsaved) {
+        changes_unsaved = true;
+        setTitle(getTitle()+" *");
+      }
       
+    }
+
+    @Override
+    public void removeUpdate(DocumentEvent e) {
+      if (!changes_unsaved) {
+        changes_unsaved = true;
+        setTitle(getTitle()+" *");
+      }
+    }
+
+    @Override
+    public void changedUpdate(DocumentEvent e) {      
     }
   }
   
   public static void main(String[] args) throws Exception {
-    
-    ElfSuite E = new ElfSuite();
     SwingUtilities.invokeLater(new Runnable() { 
       public void run() {
-        E.run(); 
+        new ElfSuite(); 
       }
     });
   }
-  
-  
-
 }
