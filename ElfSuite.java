@@ -10,7 +10,6 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 
 import javax.swing.BoxLayout;
-import javax.swing.JEditorPane;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -21,6 +20,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -41,13 +41,13 @@ public class ElfSuite extends JFrame {
   JMenuItem mSaveAs = new JMenuItem("Save As");
   JMenuItem mExit = new JMenuItem("Exit");
   
-  JEditorPane jtaMain = new JEditorPane() {
+  JTextArea jtaMain = new JTextArea() {
     public void setBounds(int x, int y, int width, int height) {
       Dimension size = this.getPreferredSize();
       super.setBounds(x,  y,  Math.max(size.width,  width),  height);
     }
   };
-  JEditorPane jtaLineNos = new JEditorPane();
+  JTextArea jtaLineNos = new JTextArea();
   
   JScrollPane jspMain = new JScrollPane(jtaMain);
   JScrollPane jspLines = new JScrollPane(jtaLineNos);
@@ -93,8 +93,10 @@ public class ElfSuite extends JFrame {
       jp.add(jtRegs[i]);
       jpRegs.add(jp);
     }
-    jtaLineNos.setContentType("text/html");
-    jtaMain.setContentType("text/html");
+    //jtaLineNos.setContentType("text/html");
+    //jtaMain.setContentType("text/html");
+    jtaMain.setFont(new Font("Courier New", Font.BOLD, 20));
+    jtaLineNos.setFont(new Font("Courier New", Font.BOLD, 20));
         
     jspMain.setPreferredSize(new Dimension(300,300));
     jspLines.setPreferredSize(new Dimension(50,300));

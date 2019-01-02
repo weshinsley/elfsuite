@@ -15,15 +15,19 @@ public class ElfFiles {
       JOptionPane.showMessageDialog(E, "Error - file is empty");
       return;
     }
-    sbLines.append("&nbsp;<br/>");
-    sbCode.append(s.get(0)+"<br/>");
+    sbLines.append("\n");
+    sbCode.append(s.get(0)+"\n");
     for (int i=1; i<s.size(); i++) {
-      sbLines.append(String.valueOf(i-1)+"<br/>");
-      sbCode.append(s.get(i)+"<br/>");
+      //sbLines.append(String.valueOf(i-1)+"<br/>");
+      //sbCode.append(s.get(i)+"<br/>");
+      sbLines.append(String.valueOf(i-1)+"\n");
+      sbCode.append(s.get(i)+"\n");
     }
     E.current_fname = fname;
-    E.jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbCode.toString()+"</span></div>");
-    E.jtaLineNos.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbLines.toString()+"</div></html>");
+    //E.jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbCode.toString()+"</span></div>");
+    //E.jtaLineNos.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'>"+sbLines.toString()+"</div></html>");
+    E.jtaMain.setText(sbCode.toString());
+    E.jtaLineNos.setText(sbLines.toString());
     E.setTitle("ElfSuite "+ElfSuite.VERSION_ID+" - "+fname);
     E.changes_unsaved = false;
     E.mSave.setEnabled(true); 
@@ -40,8 +44,11 @@ public class ElfFiles {
   }  
   
   public static void newFile(ElfSuite E) {
-    E.jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>#ip </span></div>");
-    E.jtaLineNos.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'></div></html>");
+    //E.jtaMain.setText("<html><div style='white-space:nowrap; text-overflow:ellipsis;font-family:Courier New;font-size:20pt;font-weight:bold'>#ip </span></div>");
+    //E.jtaLineNos.setText("<html><div style='text-align:right; color:#000080;font-family:Courier New;font-size:20pt;font-weight:bold'></div></html>");
+    E.jtaMain.setText("#ip ");
+    E.jtaLineNos.setText("");
+    
     E.setTitle("ElfSuite "+ElfSuite.VERSION_ID);
     E.changes_unsaved = false;
   }
